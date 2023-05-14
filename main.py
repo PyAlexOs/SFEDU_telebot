@@ -1,18 +1,22 @@
+from API_TOKEN import API_TOKEN
 import texts
+
 import asyncio
 import logging
 
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command, Text
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 logging.basicConfig(level=logging.INFO)
-bot = Bot(token='', parse_mode="HTML")
+bot = Bot(token=API_TOKEN, parse_mode="HTML")
 dp = Dispatcher()
 
 
-@dp.message(Command('start'))
+@dp.message(Command('start', 'role'))
 async def start(message: types.Message):
-    await message.answer(texts.hello)
+    if message.text == '/start':
+        await message.answer(texts.hello)
 
     keyboard = [[
         types.KeyboardButton(text='Для абитуриента 🎒'),
@@ -36,9 +40,9 @@ async def menu_abit(message: types.Message):
         ]
     ]
 
-    reply_markup = types.ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True,
+    reply_markup = types.ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True, one_time_keyboard=True,
                                              input_field_placeholder='Выбери нужный раздел')
-    await message.answer('Отлично! Что ты хочешь узнать?', reply_markup=reply_markup)
+    await message.answer(texts.okay, reply_markup=reply_markup)
 
 
 @dp.message(Text('Для студента 🎓'))
@@ -62,25 +66,55 @@ async def menu_stud(message: types.Message):
         ]
     ]
 
-    reply_markup = types.ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True,
+    reply_markup = types.ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True, one_time_keyboard=True,
                                              input_field_placeholder='Выбери нужный раздел')
-    await message.answer('Отлично! Что ты хочешь узнать?', reply_markup=reply_markup)
+    await message.answer(texts.okay, reply_markup=reply_markup)
 
 
 @dp.message(Text('Направления подготовки 👉'))
-async def directions(message: types.Message):
-    keyboard = [[types.KeyboardButton(text='« Назад')]]
-
-    reply_markup = types.ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
-    await message.answer(texts.directions, reply_markup=reply_markup)
-
-
 @dp.message(Text('Поступление 📄'))
-async def entrance(message: types.Message):
-    keyboard = [[types.KeyboardButton(text='« Назад')]]
+@dp.message(Text('Контакты приёмной комиссии ☎️'))
+async def abit(message: types.Message):
+    text = ''
+    keyboard = [[types.InlineKeyboardButton(text='« Назад', callback_data='menu_abit')]]
+    reply_markup = types.InlineKeyboardMarkup(inline_keyboard=keyboard, resize_keyboard=True, one_time_keyboard=True)
 
-    reply_markup = types.ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
-    await message.answer(texts.entrance, reply_markup=reply_markup)
+    if message.text == 'Направления подготовки 👉':
+        text = texts.directions
+
+    elif message.text == 'Поступление 📄':
+        text = texts.entrance
+
+    elif message.text == 'Контакты приёмной комиссии ☎️':
+        text = texts.comission
+
+    await message.answer(text=text, reply_markup=reply_markup)
+
+
+@dp.message(Text('Общежития 🏠'))
+@dp.message(Text('Переход с платки 📚'))
+@dp.message(Text('Студпрофком 💼'))
+@dp.message(Text('Центр карьеры 🔍'))
+@dp.message(Text('Личный кабинет 🔑'))
+@dp.message(Text('Запись на физическую культуру 🏀'))
+@dp.message(Text('Объединённый совет учащихся 👥💬'))
+async def stud(message: types.Message):
+    keyboard = [[types.InlineKeyboardButton(text='« Назад', callback_data='menu_stud')]]
+    reply_markup = types.InlineKeyboardMarkup(inline_keyboard=keyboard, resize_keyboard=True, one_time_keyboard=True)
+
+    await message.answer(texts.hostel, reply_markup=reply_markup)
+
+
+@dp.callback_query(Text("menu_stud"))
+@dp.callback_query(Text("menu_abit"))
+async def redirect_abit(callback: types.CallbackQuery):
+    await callback.answer()
+    await callback.message.edit_reply_markup(reply_markup=None)
+    if callback.data == 'menu_abit':
+        await menu_abit(callback.message)
+
+    elif callback.data == 'menu_stud':
+        await menu_stud(callback.message)
 
 
 async def main():
